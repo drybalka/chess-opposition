@@ -6,8 +6,8 @@
  */
 
 .cg-wrap {
-  width: 100%;
-  height: 100%;
+  /* width: 100%; */
+  /* height: 100%; */
   aspect-ratio: 1 / 1;
   position: relative;
   display: block;
@@ -193,3 +193,14 @@ cg-board piece.fading {
   transform: translateY(39%);
 }
 
+cg-board square.win {
+  background-color: rgba(20, 85, 30, 0.5);
+}
+
+cg-board square.draw {
+  /* background-color: rgba(30, 30, 30, 0.3); */
+}
+
+cg-board square.loss {
+  background-color: rgba(85, 30, 20, 0.5);
+}

@@ -1,9 +1,7 @@
 'use client';
 
-import '@/components/Chessground/base.css';
-import '@/components/Chessground/brown.css';
-import '@/components/Chessground/cburnett.css';
-import '@/components/Chessground/highlight.css';
+import '@/assets/theme.css'
+import '@/assets/chessground.css'
 
 import { useEffect, useRef } from "react";
 import { Chessground as CG } from 'chessground';
@@ -18,7 +16,11 @@ export default function Chessground(config: Config) {
 
   useEffect(() => {
     if (!root.current) { return };
-    const ground = CG(root.current, config);
+    const ground = CG(root.current,
+      {
+        highlight: { lastMove: false, check: false },
+        ...config
+      });
 
     const highlightPromises: Promise<[Key, string]>[] = squares
       .filter(square => {
@@ -63,8 +65,6 @@ export default function Chessground(config: Config) {
                 }
               })
             });
-
-
         }
       }
     })
