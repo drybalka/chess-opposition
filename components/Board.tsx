@@ -9,6 +9,7 @@ import { Key, files, ranks, Piece } from "chessground/types";
 import { write as fenWrite } from "chessground/fen";
 import { Api } from 'chessground/api';
 import { Spares } from './Spares';
+import { Info } from './Info';
 
 const squares = files.flatMap(f => ranks.map(r => f + r as Key));
 
@@ -28,16 +29,18 @@ export default function Board() {
   }, []);
 
   const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>("");
   useEffect(() => {
     if (!ground) { return };
     if (!selectedPiece) {
+      setErrorMessage("");
       ground.set({
         events: { change: undefined },
         highlight: { custom: undefined }
       });
     } else {
-      highlightOutcomes(ground, selectedPiece);
-      ground.set({ events: { change: () => highlightOutcomes(ground, selectedPiece) } });
+      highlightOutcomes(ground, selectedPiece, setErrorMessage);
+      ground.set({ events: { change: () => highlightOutcomes(ground, selectedPiece, setErrorMessage) } });
     }
   }, [selectedPiece]);
 
@@ -50,27 +53,38 @@ export default function Board() {
   }
 
   return (
-    <div className="flex flex-col aspect-[8/11] max-h-dvh mx-auto">
-      <Spares className="flex-1"
-        color="black"
-        position="top"
-        selectedPiece={selectedPiece}
-        onPieceSelection={selectSparePiece}
-        onPieceDrag={(piece, event) => ground?.dragNewPiece(piece, event, true)}
-      />
-      <div ref={root} className="flex-1" />
-      <Spares className="flex-1"
-        color="white"
-        position="bottom"
-        selectedPiece={selectedPiece}
-        onPieceSelection={selectSparePiece}
-        onPieceDrag={(piece, event) => ground?.dragNewPiece(piece, event, true)}
-      />
-    </div>
+    <>
+      <div className="grid md:grid-cols-[2fr_1fr] grid-rows-[1.5fr_8fr_1.5fr_0fr] aspect-[8/11] md:aspect-[12/11] max-h-dvh m-auto p-4">
+        <Spares className="row-start-1"
+          color="black"
+          position="top"
+          selectedPiece={selectedPiece}
+          onPieceSelection={selectSparePiece}
+          onPieceDrag={(piece, event) => ground?.dragNewPiece(piece, event, true)}
+        />
+        <div ref={root} className="row-start-2" />
+        <Spares className="row-start-3"
+          color="white"
+          position="bottom"
+          selectedPiece={selectedPiece}
+          onPieceSelection={selectSparePiece}
+          onPieceDrag={(piece, event) => ground?.dragNewPiece(piece, event, true)}
+        />
+        <Info className="hidden md:block row-start-2 row-span-3 col-start-2" message={errorMessage} />
+      </div>
+      <Info className="md:hidden" message={errorMessage} />
+    </>
   );
 }
 
-function highlightOutcomes(ground: Api, piece: Piece) {
+function highlightOutcomes(ground: Api, piece: Piece, setErrorMessage: (message: string) => void) {
+  const errorMessage = validateBoardState(ground, piece);
+  setErrorMessage(errorMessage);
+  if (errorMessage) {
+    ground.set({ highlight: { custom: undefined } });
+    return;
+  }
+
   const highlightPromises: Promise<[Key, string]>[] = squares
     .filter(square => {
       const occupied = ground.state.pieces.keys();
@@ -83,13 +97,16 @@ function highlightOutcomes(ground: Api, piece: Piece) {
       pieces.delete(square);
 
       const response = await fetch(`https://tablebase.lichess.ovh/standard?fen=${newFen}`);
+      if (response.status === 429) {
+        setErrorMessage("Too many requests, some squares are not highlighted. Try again later.");
+      }
       const body = await response.json();
       return [square, body.category] as [Key, string];
     });
 
   Promise.allSettled(highlightPromises)
     .then(values => {
-      const highlights = values.filter(v => v.status == 'fulfilled').map(v => v.value);
+      const highlights = values.filter(v => v.status === 'fulfilled').map(v => v.value);
       ground.set({
         highlight: {
           custom: new Map(highlights)
@@ -97,3 +114,17 @@ function highlightOutcomes(ground: Api, piece: Piece) {
       })
     });
 }
+
+function validateBoardState(ground: Api, spare: Piece): string {
+  const pieces = ground.state.pieces.values().toArray();
+  pieces.push(spare);
+  if (pieces.length > 7) {
+    return "Too many pieces."
+  }
+  const kings = pieces.filter(p => p.role == "king").map(p => p.color);
+  if (kings.length !== 2 || !kings.includes("white") || !kings.includes("black")) {
+    return "There must be 2 kings of opposite color on the board.";
+  }
+  return "";
+}
+
