@@ -15,7 +15,7 @@ const squares = files.flatMap(f => ranks.map(r => f + r as Key));
 
 const defaultConfig = {
   coordinates: false,
-  fen: "8/8/4k3/8/8/8/3P4/8 b - - 0 1",
+  fen: "8/8/4k3/8/8/8/3P4/8",
   highlight: { lastMove: false, check: false },
   draggable: { deleteOnDropOff: true },
 };
@@ -23,9 +23,12 @@ const defaultConfig = {
 export default function Board() {
   const root = useRef<HTMLDivElement>(null);
   const [ground, setGround] = useState<Api | null>(null);
+  const [fen, setFen] = useState<string>(defaultConfig.fen);
   useEffect(() => {
     if (!root.current) { return };
-    setGround(Chessground(root.current, defaultConfig));
+    const ground = Chessground(root.current, defaultConfig);
+    ground.set({ events: { change: () => setFen(ground.getFen()) } });
+    setGround(ground);
   }, []);
 
   const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
@@ -35,12 +38,19 @@ export default function Board() {
     if (!selectedPiece) {
       setErrorMessage("");
       ground.set({
-        events: { change: undefined },
+        events: { change: () => setFen(ground.getFen()) },
         highlight: { custom: undefined }
       });
     } else {
       highlightOutcomes(ground, selectedPiece, setErrorMessage);
-      ground.set({ events: { change: () => highlightOutcomes(ground, selectedPiece, setErrorMessage) } });
+      ground.set({
+        events: {
+          change: () => {
+            setFen(ground.getFen());
+            highlightOutcomes(ground, selectedPiece, setErrorMessage);
+          }
+        }
+      });
     }
   }, [selectedPiece]);
 
@@ -72,9 +82,9 @@ export default function Board() {
             onPieceDrag={(piece, event) => ground?.dragNewPiece(piece, event, true)}
           />
         </div>
-        <Info className="hidden md:flex w-80" message={errorMessage} />
+        <Info className="hidden md:flex w-80" fen={fen} message={errorMessage} />
       </div>
-      <Info className="md:hidden mx-auto w-3/4" message={errorMessage} />
+      <Info className="md:hidden mx-auto w-3/4" fen={fen} message={errorMessage} />
     </>
   );
 }
