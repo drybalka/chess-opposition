@@ -54,25 +54,27 @@ export default function Board() {
 
   return (
     <>
-      <div className="grid md:grid-cols-[2fr_1fr] grid-rows-[1.5fr_8fr_1.5fr_0fr] aspect-[8/11] md:aspect-[12/11] max-h-dvh m-auto p-4">
-        <Spares className="row-start-1"
-          color="black"
-          position="top"
-          selectedPiece={selectedPiece}
-          onPieceSelection={selectSparePiece}
-          onPieceDrag={(piece, event) => ground?.dragNewPiece(piece, event, true)}
-        />
-        <div ref={root} className="row-start-2" />
-        <Spares className="row-start-3"
-          color="white"
-          position="bottom"
-          selectedPiece={selectedPiece}
-          onPieceSelection={selectSparePiece}
-          onPieceDrag={(piece, event) => ground?.dragNewPiece(piece, event, true)}
-        />
-        <Info className="hidden md:block row-start-2 row-span-3 col-start-2" message={errorMessage} />
+      <div className='flex justify-center'>
+        <div className="flex-auto w-full h-full max-w-[72dvh] max-h-dvh grid grid-rows-[1.5fr_8fr_1.5fr] p-4">
+          <Spares className=""
+            color="black"
+            position="top"
+            selectedPiece={selectedPiece}
+            onPieceSelection={selectSparePiece}
+            onPieceDrag={(piece, event) => ground?.dragNewPiece(piece, event, true)}
+          />
+          <div ref={root} className="" />
+          <Spares className=""
+            color="white"
+            position="bottom"
+            selectedPiece={selectedPiece}
+            onPieceSelection={selectSparePiece}
+            onPieceDrag={(piece, event) => ground?.dragNewPiece(piece, event, true)}
+          />
+        </div>
+        <Info className="hidden md:flex w-80" message={errorMessage} />
       </div>
-      <Info className="md:hidden" message={errorMessage} />
+      <Info className="md:hidden mx-auto w-3/4" message={errorMessage} />
     </>
   );
 }
